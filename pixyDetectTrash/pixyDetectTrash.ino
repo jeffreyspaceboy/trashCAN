@@ -2,34 +2,29 @@
 #include <Servo.h>
 
 //PINS
-
-
-
 int recycleLEDPin = A0;
 int garbageLEDPin = A1;
 int compostLEDPin = A2;
 
-
-int compostTrigPin=5;
-int compostEchoPin=6;
 int recycleTrigPin=7;
 int recycleEchoPin=8;
 int garbageTrigPin=A3;
 int garbageEchoPin=A4;
+int compostTrigPin=5;
+int compostEchoPin=6;
 
 int doorFrontServoPin = 12;
 int doorBackServoPin = 11;
 Servo doorFrontServo;
 Servo doorBackServo;
 
-
 int rightServoPin = 10;
 int leftServoPin = 9;
 Servo rightServo;
 Servo leftServo;
 
-
-
+// This is the main Pixy object 
+Pixy2 pixy;
 
 struct sonarPins{
   int trigPin;
@@ -43,6 +38,9 @@ class bin{
       binLEDPin = ledPin;
       distanceSensor.trigPin = tPin;
       distanceSensor.echoPin = ePin;
+      pinMode(ledPin,OUTPUT);
+      pinMode(tPin,OUTPUT);
+      pinMode(ePin,INPUT);
     }
     void checkStatus(){
       digitalWrite(distanceSensor.trigPin,LOW);
@@ -66,45 +64,86 @@ class bin{
     sonarPins distanceSensor;
 };
 
-// This is the main Pixy object 
-Pixy2 pixy;
-
 bool releaseItem(String dropAngle){
   dropAngleSet(dropAngle);
   //Open
-  doorFrontServo.write(20);
-  doorBackServo.write(60);
-  delay(1000);
+  doorFrontServo.attach(doorFrontServoPin);
+  doorBackServo.attach(doorBackServoPin);
+  doorFrontServo.write(180);
+  doorBackServo.write(180);
+  delay(2000);
   //Close
-  doorFrontServo.write(20);
-  doorBackServo.write(60);
+  doorFrontServo.write(107);
+  doorBackServo.write(115);
+  delay(1000);
+  doorFrontServo.detach();
+  doorBackServo.detach();
+  
+  rightServo.attach(rightServoPin);
+  leftServo.attach(leftServoPin);
+  delay(500);
+  rightServo.write(55);
+  leftServo.write(110);
+  delay(500);
+  rightServo.detach();
+  leftServo.detach();
+  return true;
 }
-
 
 String currentDropAngle = "Garbage";
 bool dropAngleSet(String newDropAngle){
   if(newDropAngle != currentDropAngle){
+    rightServo.attach(rightServoPin);
+    leftServo.attach(leftServoPin);
     if(newDropAngle == "Recycle"){
       rightServo.write(20);
       leftServo.write(60);
     }
     else if(newDropAngle == "Compost"){
       rightServo.write(90);
-      leftServo.write(150);
+      leftServo.write(160);
     }
     else if(newDropAngle == "Garbage"){
       rightServo.write(55);
       leftServo.write(110);
     }
   }
-  delay(500);
+  delay(1000);
+  rightServo.detach();
+  leftServo.detach();
   return true;
 }
 
+bin recycleBin("Recycle", recycleLEDPin, recycleTrigPin, recycleEchoPin);
+bin garbageBin("Garbage", garbageLEDPin, garbageTrigPin, garbageEchoPin);
+bin compostBin("Compost", compostLEDPin, compostTrigPin, compostEchoPin);
 
-bin recycleBin("Recycle", int ledPin, int tPin, int ePin);
-bin garbageBin("Garbage", int ledPin, int tPin, int ePin);
-bin compostBin("Compost", int ledPin, int tPin, int ePin);
+void detectObject(){
+  int i; 
+  pixy.ccc.getBlocks();
+  if (pixy.ccc.numBlocks)
+  {
+    delay(1000);
+    Serial.print("Detected: ");
+    if(pixy.ccc.blocks[i].m_signature == 1 || pixy.ccc.blocks[i].m_signature == 4){
+      Serial.print("Compost");
+      delay(2000);
+      releaseItem("Compost");
+    }
+    else if(pixy.ccc.blocks[i].m_signature == 2){
+      Serial.print("Recycle");
+      delay(2000);
+      releaseItem("Recycle");
+    }
+    else if(pixy.ccc.blocks[i].m_signature == 3){
+      Serial.print("Garbage");
+      delay(2000);
+      releaseItem("Garbage");
+    }
+    Serial.println("");
+  }  
+  delay(250);
+}
 
 void setup()
 {
@@ -115,31 +154,28 @@ void setup()
   doorFrontServo.attach(doorFrontServoPin);
   doorBackServo.attach(doorBackServoPin);
   pixy.init();
+  rightServo.write(55);
+  leftServo.write(110);
+      
+  doorFrontServo.write(107);
+  doorBackServo.write(115);
+  
+  rightServo.detach();
+  leftServo.detach();
+  doorFrontServo.detach();
+  doorBackServo.detach();
 }
 
 void loop()
 { 
-  int i; 
-  // grab blocks!
-  pixy.ccc.getBlocks();
-  
-  // If there are detect blocks, print them!
-  if (pixy.ccc.numBlocks)
-  {
-    Serial.print("Detected: ");
-    if(pixy.ccc.blocks[i].m_signature == 1){
-      Serial.print("Compost");
-      servo.write(0);
-    }
-    else if(pixy.ccc.blocks[i].m_signature == 2){
-      Serial.print("Recycle");
-      servo.write(90);
-    }
-    else{
-      Serial.print("Garbage");
-      servo.write(180);
-    }
-    Serial.println("");
-  }  
-  delay(250);
+  detectObject();
+  delay(4000);
+  //releaseItem("Recycle");
+  //delay(10000);
+  //releaseItem("Garbage");
+  //delay(10000);
+  //releaseItem("Compost");
+
+  //doorFrontServo.write(107);
+  //doorBackServo.write(115);
 }
