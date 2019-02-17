@@ -96,12 +96,12 @@ bool dropAngleSet(String newDropAngle){
     rightServo.attach(rightServoPin);
     leftServo.attach(leftServoPin);
     if(newDropAngle == "Recycle"){
-      rightServo.write(20);
+      rightServo.write(10);
       leftServo.write(60);
     }
     else if(newDropAngle == "Compost"){
       rightServo.write(90);
-      leftServo.write(160);
+      leftServo.write(170);
     }
     else if(newDropAngle == "Garbage"){
       rightServo.write(55);
